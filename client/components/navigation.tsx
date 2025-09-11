@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { BarChart3, Menu, User, LogOut, TrendingUp, History, Home, Info, Layout } from 'lucide-react'
+import { BarChart3, Menu, User, LogOut, TrendingUp, History, Home, Layout } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
@@ -161,14 +161,6 @@ export function Navigation() {
               <Layout className="h-4 w-4 mr-2" />
               Templates
             </Button>
-            <Button 
-              variant="ghost" 
-              onClick={handleAboutUs}
-              className="text-gray-300 hover:text-white hover:bg-slate-700"
-            >
-              <Info className="h-4 w-4 mr-2" />
-              About Us
-            </Button>
             {user ? (
               <div className="flex items-center space-x-4">
                 <span className="text-gray-300 text-sm">Welcome, {user.name}</span>
@@ -239,14 +231,6 @@ export function Navigation() {
             >
               <Layout className="h-4 w-4 mr-2" />
               Templates
-            </Button>
-            <Button 
-              variant="ghost" 
-              onClick={handleAboutUs}
-              className="w-full justify-start text-gray-300"
-            >
-              <Info className="h-4 w-4 mr-2" />
-              About Us
             </Button>
             {user ? (
               <Button 
