@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { BarChart3, Menu, User, LogOut, TrendingUp, History, Home, Info } from 'lucide-react'
+import { BarChart3, Menu, User, LogOut, TrendingUp, History, Home, Info, Layout } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { api } from '@/lib/api'
+import { useToast } from '@/hooks/use-toast'
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [user, setUser] = useState(null)
   const router = useRouter()
   const pathname = usePathname()
+  const { toast } = useToast()
 
   useEffect(() => {
     const currentUser = api.getCurrentUser()
@@ -21,15 +23,25 @@ export function Navigation() {
 
   const handleLogout = () => {
     api.logout()
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    })
     router.push('/auth/signin')
   }
 
   const handleAnalytics = () => {
-    // Scroll to charts section if on dashboard, otherwise navigate
     if (pathname === '/dashboard') {
       const chartsSection = document.querySelector('[data-section="charts"]')
       if (chartsSection) {
         chartsSection.scrollIntoView({ behavior: 'smooth' })
+      } else {
+        // If no charts, show message to upload data first
+        alert('📊 Please upload an Excel file first to view analytics!')
+        const uploadSection = document.querySelector('[data-section="upload"]')
+        if (uploadSection) {
+          uploadSection.scrollIntoView({ behavior: 'smooth' })
+        }
       }
     } else {
       router.push('/dashboard')
@@ -37,11 +49,52 @@ export function Navigation() {
   }
 
   const handleHistory = () => {
-    // Scroll to upload history section if on dashboard
     if (pathname === '/dashboard') {
       const historySection = document.querySelector('[data-section="history"]')
       if (historySection) {
         historySection.scrollIntoView({ behavior: 'smooth' })
+      }
+    } else {
+      router.push('/dashboard')
+    }
+  }
+
+  const handleExportAll = () => {
+    if (pathname === '/dashboard') {
+      const exportButton = document.querySelector('[data-action="export-all"]') as HTMLButtonElement
+      if (exportButton) {
+        exportButton.click()
+      } else {
+        alert('📁 No charts available to export. Please create some visualizations first!')
+      }
+    } else {
+      router.push('/dashboard')
+    }
+  }
+
+  const handleNewUpload = () => {
+    if (pathname === '/dashboard') {
+      const newAnalysisButton = document.querySelector('[data-action="new-analysis"]') as HTMLButtonElement
+      if (newAnalysisButton) {
+        newAnalysisButton.click()
+      } else {
+        const uploadSection = document.querySelector('[data-section="upload"]')
+        if (uploadSection) {
+          uploadSection.scrollIntoView({ behavior: 'smooth' })
+        }
+      }
+    } else {
+      router.push('/dashboard')
+    }
+  }
+
+  const handleTemplates = () => {
+    if (pathname === '/dashboard') {
+      const templatesButton = document.querySelector('[data-action="templates"]') as HTMLButtonElement
+      if (templatesButton) {
+        templatesButton.click()
+      } else {
+        alert('📋 Templates feature is available in the dashboard sidebar!')
       }
     } else {
       router.push('/dashboard')
@@ -85,6 +138,7 @@ export function Navigation() {
               variant="ghost" 
               onClick={handleAnalytics}
               className="text-gray-300 hover:text-white hover:bg-slate-700"
+              title="View charts and analytics"
             >
               <TrendingUp className="h-4 w-4 mr-2" />
               Analytics
@@ -93,9 +147,19 @@ export function Navigation() {
               variant="ghost" 
               onClick={handleHistory}
               className="text-gray-300 hover:text-white hover:bg-slate-700"
+              title="View upload history"
             >
               <History className="h-4 w-4 mr-2" />
               History
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={handleTemplates}
+              className="text-gray-300 hover:text-white hover:bg-slate-700"
+              title="View chart templates"
+            >
+              <Layout className="h-4 w-4 mr-2" />
+              Templates
             </Button>
             <Button 
               variant="ghost" 
@@ -167,6 +231,14 @@ export function Navigation() {
             >
               <History className="h-4 w-4 mr-2" />
               History
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={handleTemplates}
+              className="w-full justify-start text-gray-300"
+            >
+              <Layout className="h-4 w-4 mr-2" />
+              Templates
             </Button>
             <Button 
               variant="ghost" 

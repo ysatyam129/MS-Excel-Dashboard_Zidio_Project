@@ -12,13 +12,19 @@ export function ThreeChart({ data, type }: ThreeChartProps) {
 
   const render3DBar = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const maxValue = Math.max(...data.map(d => d.value))
+    if (maxValue <= 0 || !isFinite(maxValue)) return
+    
     const barWidth = Math.min(width / data.length * 0.6, 60)
     const spacing = (width - barWidth * data.length) / (data.length + 1)
     
     data.forEach((item, index) => {
+      if (!isFinite(item.value) || item.value < 0) return
+      
       const barHeight = (item.value / maxValue) * (height * 0.6)
       const x = spacing + index * (barWidth + spacing)
       const y = height - barHeight - 80
+      
+      if (!isFinite(x) || !isFinite(y) || !isFinite(barWidth) || !isFinite(barHeight)) return
       
       const hue = (index * 360) / data.length
       const gradient = ctx.createLinearGradient(x, y, x + barWidth, y + barHeight)
@@ -99,12 +105,17 @@ export function ThreeChart({ data, type }: ThreeChartProps) {
 
   const render3DScatter = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const maxValue = Math.max(...data.map(d => d.value))
+    if (maxValue <= 0 || !isFinite(maxValue)) return
     
     data.forEach((item, index) => {
+      if (!isFinite(item.value) || item.value < 0) return
+      
       const x = (index / (data.length - 1)) * (width - 100) + 50
       const y = height - ((item.value / maxValue) * (height - 100)) - 50
       const size = (item.value / maxValue) * 20 + 10
       const hue = (index * 360) / data.length
+      
+      if (!isFinite(x) || !isFinite(y) || !isFinite(size) || size <= 0) return
       
       // 3D sphere effect
       const gradient = ctx.createRadialGradient(x - size/3, y - size/3, 0, x, y, size)
@@ -132,12 +143,14 @@ export function ThreeChart({ data, type }: ThreeChartProps) {
 
   const render3DLine = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const maxValue = Math.max(...data.map(d => d.value))
+    if (maxValue <= 0 || !isFinite(maxValue)) return
+    
     const points = data.map((item, index) => ({
       x: (index / (data.length - 1)) * (width - 100) + 50,
       y: height - ((item.value / maxValue) * (height - 100)) - 50,
       value: item.value,
       name: item.name
-    }))
+    })).filter(point => isFinite(point.x) && isFinite(point.y))
     
     // 3D line with depth
     for (let depth = 5; depth >= 0; depth--) {
@@ -160,6 +173,8 @@ export function ThreeChart({ data, type }: ThreeChartProps) {
     
     // Points
     points.forEach((point, index) => {
+      if (!isFinite(point.x) || !isFinite(point.y)) return
+      
       const hue = (index * 360) / data.length
       const gradient = ctx.createRadialGradient(point.x - 3, point.y - 3, 0, point.x, point.y, 8)
       gradient.addColorStop(0, `hsl(${hue}, 70%, 75%)`)
@@ -180,14 +195,20 @@ export function ThreeChart({ data, type }: ThreeChartProps) {
 
   const render3DCylinder = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const maxValue = Math.max(...data.map(d => d.value))
+    if (maxValue <= 0 || !isFinite(maxValue)) return
+    
     const cylinderWidth = Math.min(width / data.length * 0.6, 50)
     const spacing = (width - cylinderWidth * data.length) / (data.length + 1)
     
     data.forEach((item, index) => {
+      if (!isFinite(item.value) || item.value < 0) return
+      
       const cylinderHeight = (item.value / maxValue) * (height * 0.6)
       const x = spacing + index * (cylinderWidth + spacing)
       const y = height - cylinderHeight - 80
       const hue = (index * 360) / data.length
+      
+      if (!isFinite(x) || !isFinite(y) || !isFinite(cylinderWidth) || !isFinite(cylinderHeight)) return
       
       // Cylinder body
       const gradient = ctx.createLinearGradient(x, y, x + cylinderWidth, y)
@@ -226,8 +247,14 @@ export function ThreeChart({ data, type }: ThreeChartProps) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const width = canvas.width
-    const height = canvas.height
+    // Set canvas size to match display size
+    const rect = canvas.getBoundingClientRect()
+    canvas.width = rect.width * window.devicePixelRatio
+    canvas.height = rect.height * window.devicePixelRatio
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+    
+    const width = rect.width
+    const height = rect.height
 
     ctx.clearRect(0, 0, width, height)
     
@@ -269,10 +296,8 @@ export function ThreeChart({ data, type }: ThreeChartProps) {
     <div className="w-full h-96 bg-gradient-to-b from-slate-900 to-slate-800 rounded-lg overflow-hidden p-4 border border-slate-700">
       <canvas 
         ref={canvasRef}
-        width={900}
-        height={450}
         className="w-full h-full cursor-pointer"
-        style={{ background: 'transparent' }}
+        style={{ background: 'transparent', display: 'block' }}
       />
     </div>
   )

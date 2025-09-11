@@ -12,6 +12,7 @@ export const api = {
     if (data.token) {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('tokenExpiry', Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     }
     return data;
   },
@@ -26,6 +27,7 @@ export const api = {
     if (data.token) {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('tokenExpiry', Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     }
     return data;
   },
@@ -33,6 +35,7 @@ export const api = {
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('tokenExpiry');
   },
 
   // File upload with auth
@@ -74,7 +77,22 @@ export const api = {
     return response.json();
   },
 
-  isAuthenticated: () => !!localStorage.getItem('token'),
+  isAuthenticated: () => {
+    const token = localStorage.getItem('token');
+    const expiry = localStorage.getItem('tokenExpiry');
+    
+    if (!token || !expiry) return false;
+    
+    // Check if token is expired
+    if (Date.now() > parseInt(expiry)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('tokenExpiry');
+      return false;
+    }
+    
+    return true;
+  },
   getCurrentUser: () => {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;

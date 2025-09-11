@@ -7,7 +7,11 @@ import { Navigation } from '@/components/navigation'
 import { FileUpload } from '@/components/file-upload'
 import { ChartVisualization } from '@/components/chart-visualization'
 import { ThreeChart } from '@/components/three-chart'
+import { FormulaDetector } from '@/components/formula-detector'
+import { ChartExportPanel } from '@/components/chart-export-panel'
+import { DashboardHelper } from '@/components/dashboard-helper'
 import { AuthGuard } from '@/components/auth-guard'
+import { useToast } from '@/hooks/use-toast'
 import { BarChart3, FileSpreadsheet, TrendingUp, Users, Clock, Download, Sparkles, Zap, Mail, Phone, Building2, Heart, Trash2, Plus, Layout, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
@@ -25,6 +29,7 @@ export default function DashboardPage() {
     lastUpload: null
   })
   const [showTemplates, setShowTemplates] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     // Get current user with error handling
@@ -58,12 +63,15 @@ export default function DashboardPage() {
   }
 
   const handleDataUploaded = (data: any) => {
-    // Sanitize data before logging to prevent log injection
     const sanitizedFileName = data?.fileName?.replace(/[\r\n]/g, '') || 'unknown'
     console.log('Data uploaded:', { fileName: sanitizedFileName, rowCount: data?.rows?.length })
     setCurrentData(data)
-    // Reload history from MongoDB
     loadUploadHistory()
+    
+    toast({
+      title: "File Uploaded Successfully!",
+      description: `${sanitizedFileName} with ${data?.rows?.length || 0} rows processed.`,
+    })
   }
 
   const loadHistoryItem = (item: any) => {
@@ -80,24 +88,53 @@ export default function DashboardPage() {
       const html2canvas = (await import('html2canvas')).default
       const jsPDF = (await import('jspdf')).default
       
-      const dashboardElement = document.querySelector('main')
-      if (dashboardElement) {
-        const canvas = await html2canvas(dashboardElement)
+      // Find all chart containers
+      const chartElements = document.querySelectorAll('[data-chart-type]')
+      
+      if (chartElements.length === 0) {
+        alert('No charts found to export!')
+        return
+      }
+
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      let isFirstPage = true
+      
+      for (let i = 0; i < chartElements.length; i++) {
+        const chartElement = chartElements[i] as HTMLElement
+        const chartType = chartElement.getAttribute('data-chart-type') || `chart-${i+1}`
         
-        // PNG Export
+        // Capture individual chart
+        const canvas = await html2canvas(chartElement, {
+          backgroundColor: '#1e293b',
+          scale: 2
+        })
+        
+        // PNG Export for each chart
         const link = document.createElement('a')
-        link.download = `${currentData.fileName}-dashboard.png`
+        link.download = `${currentData.fileName}-${chartType}.png`
         link.href = canvas.toDataURL()
         link.click()
         
-        // PDF Export
-        const pdf = new jsPDF('l', 'mm', 'a4')
-        const imgData = canvas.toDataURL('image/png')
-        pdf.addImage(imgData, 'PNG', 10, 10, 277, 190)
-        pdf.save(`${currentData.fileName}-dashboard.pdf`)
+        // Add to PDF
+        if (!isFirstPage) {
+          pdf.addPage()
+        }
         
-        alert('✅ Charts exported successfully in PNG & PDF format!')
+        const imgData = canvas.toDataURL('image/png')
+        const imgWidth = 190
+        const imgHeight = (canvas.height * imgWidth) / canvas.width
+        
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, Math.min(imgHeight, 270))
+        pdf.text(`${chartType.toUpperCase()} - ${currentData.fileName}`, 10, imgHeight + 20)
+        
+        isFirstPage = false
       }
+      
+      // Save combined PDF
+      pdf.save(`${currentData.fileName}-all-charts.pdf`)
+      
+      alert(`✅ ${chartElements.length} charts exported successfully in PNG & PDF format!`)
+      
     } catch (error) {
       console.error('Export error:', error)
       alert('❌ Export failed! Please try again.')
@@ -118,10 +155,17 @@ export default function DashboardPage() {
         setCurrentData(null)
       }
       
-      alert('✅ File successfully deleted!')
+      toast({
+        title: "File Deleted",
+        description: `"${itemName}" has been successfully deleted.`,
+      })
     } catch (error) {
       console.error('Delete error:', error)
-      alert('❌ Failed to delete file! Please try again.')
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: "Failed to delete file. Please try again.",
+      })
     }
   }
 
@@ -138,7 +182,10 @@ export default function DashboardPage() {
   const loadTemplate = (template: any) => {
     setCurrentData(template.data)
     setShowTemplates(false)
-    alert(`✅ Template "${template.name}" loaded successfully!`)
+    toast({
+      title: "Template Loaded",
+      description: `"${template.name}" loaded successfully!`,
+    })
   }
 
   return (
@@ -219,7 +266,7 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm">
+                <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm" data-section="upload">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center">
                       <Sparkles className="h-5 w-5 mr-2 text-blue-400" />
@@ -260,6 +307,7 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
                     className="space-y-4"
+                    data-section="charts"
                   >
                     {/* 3D Chart Type Selector */}
                     <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm">
@@ -311,7 +359,7 @@ export default function DashboardPage() {
                     </Card>
                     
                     {/* 3D Visualization */}
-                    <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm">
+                    <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm" data-chart-type={`3d-${threeDType}`}>
                       <CardHeader>
                         <CardTitle className="text-white flex items-center">
                           <Zap className="h-5 w-5 mr-2 text-green-400" />
@@ -320,17 +368,37 @@ export default function DashboardPage() {
                       </CardHeader>
                       <CardContent>
                         <ThreeChart 
-                          data={currentData?.rows?.slice(0, 10).map((row, index) => ({
-                            name: row?.[0] || `Item ${index + 1}`,
-                            value: typeof row?.[1] === 'number' ? row[1] : (parseFloat(row?.[1]) || 0)
-                          })) || []}
+                          data={currentData?.rows?.slice(1, 11).map((row, index) => {
+                            const name = String(row?.[0] || `Item ${index + 1}`).substring(0, 10)
+                            const rawValue = row?.[1]
+                            let value = 0
+                            
+                            if (typeof rawValue === 'number' && isFinite(rawValue)) {
+                              value = rawValue
+                            } else if (typeof rawValue === 'string') {
+                              const parsed = parseFloat(rawValue.replace(/[^0-9.-]/g, ''))
+                              value = isFinite(parsed) ? parsed : Math.random() * 100
+                            } else {
+                              value = Math.random() * 100
+                            }
+                            
+                            return { name, value: Math.abs(value) }
+                          }).filter(item => item.value > 0) || [
+                            { name: 'Sample A', value: 45 },
+                            { name: 'Sample B', value: 67 },
+                            { name: 'Sample C', value: 23 },
+                            { name: 'Sample D', value: 89 },
+                            { name: 'Sample E', value: 34 }
+                          ]}
                           type={threeDType}
                         />
                       </CardContent>
                     </Card>
                   </motion.div>
                 ) : (
-                  <ChartVisualization data={currentData} />
+                  <div data-chart-type="2d-charts" data-section="charts">
+                    <ChartVisualization data={currentData} />
+                  </div>
                 )}
               </div>
             )}
@@ -338,7 +406,15 @@ export default function DashboardPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm">
+            {currentData && (
+              <FormulaDetector data={currentData} />
+            )}
+            
+            {currentData && (
+              <ChartExportPanel data={currentData} />
+            )}
+            
+            <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm" data-section="history">
               <CardHeader>
                 <CardTitle className="text-white">Upload History</CardTitle>
                 <CardDescription className="text-gray-400">
@@ -402,6 +478,7 @@ export default function DashboardPage() {
                 <Button 
                   className="w-full bg-black text-white border-black hover:bg-gray-900" 
                   onClick={() => exportAllCharts()}
+                  data-action="export-all"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export All Charts
@@ -409,6 +486,7 @@ export default function DashboardPage() {
                 <Button 
                   className="w-full bg-black text-white border-black hover:bg-gray-900"
                   onClick={handleNewAnalysis}
+                  data-action="new-analysis"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New Analysis
@@ -416,6 +494,7 @@ export default function DashboardPage() {
                 <Button 
                   className="w-full bg-black text-white border-black hover:bg-gray-900"
                   onClick={handleViewTemplates}
+                  data-action="templates"
                 >
                   <Layout className="h-4 w-4 mr-2" />
                   View Templates
@@ -671,6 +750,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </footer>
+      
+      <DashboardHelper />
     </div>
     </AuthGuard>
   )

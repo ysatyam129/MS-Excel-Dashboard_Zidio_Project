@@ -103,15 +103,62 @@ export function ChartVisualization({ data }: ChartVisualizationProps) {
     
     if (format === 'png') {
       const link = document.createElement('a')
-      link.download = `${data.fileName}-chart.png`
+      link.download = `${data.fileName}-${chartType}-chart.png`
       link.href = canvas.toDataURL()
       link.click()
     } else {
       const pdf = new jsPDF()
       const imgData = canvas.toDataURL('image/png')
       pdf.addImage(imgData, 'PNG', 10, 10, 190, 100)
-      pdf.save(`${data.fileName}-chart.pdf`)
+      pdf.save(`${data.fileName}-${chartType}-chart.pdf`)
     }
+  }
+
+  const exportAllChartTypes = async () => {
+    const chartTypes = ['bar', 'line', 'pie', 'area']
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    let isFirstPage = true
+    
+    for (const type of chartTypes) {
+      // Temporarily change chart type
+      const originalType = chartType
+      setChartType(type)
+      
+      // Wait for re-render
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      const chartElement = document.getElementById('chart-container')
+      if (chartElement) {
+        const canvas = await html2canvas(chartElement, {
+          backgroundColor: '#1e293b',
+          scale: 2
+        })
+        
+        // PNG Export
+        const link = document.createElement('a')
+        link.download = `${data.fileName}-${type}-chart.png`
+        link.href = canvas.toDataURL()
+        link.click()
+        
+        // Add to PDF
+        if (!isFirstPage) pdf.addPage()
+        
+        const imgData = canvas.toDataURL('image/png')
+        const imgWidth = 190
+        const imgHeight = (canvas.height * imgWidth) / canvas.width
+        
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, Math.min(imgHeight, 270))
+        pdf.text(`${type.toUpperCase()} CHART - ${data.fileName}`, 10, imgHeight + 20)
+        
+        isFirstPage = false
+      }
+      
+      // Restore original chart type
+      setChartType(originalType)
+    }
+    
+    pdf.save(`${data.fileName}-all-chart-types.pdf`)
+    alert(`✅ All 4 chart types exported successfully!`)
   }
 
   const generateAIInsights = () => {
@@ -217,11 +264,15 @@ export function ChartVisualization({ data }: ChartVisualizationProps) {
         <div className="flex gap-2">
           <Button onClick={() => downloadChart('png')} variant="outline">
             <Download className="h-4 w-4 mr-2" />
-            PNG
+            Current Chart PNG
           </Button>
           <Button onClick={() => downloadChart('pdf')} variant="outline">
             <Download className="h-4 w-4 mr-2" />
-            PDF
+            Current Chart PDF
+          </Button>
+          <Button onClick={exportAllChartTypes} className="bg-green-600 hover:bg-green-700">
+            <Download className="h-4 w-4 mr-2" />
+            Export All Chart Types
           </Button>
         </div>
       </div>
@@ -257,7 +308,7 @@ export function ChartVisualization({ data }: ChartVisualizationProps) {
       </Card>
 
       <div className="grid md:grid-cols-4 gap-4">
-        <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+        <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm" data-chart-type="chart-controls">
           <CardHeader>
             <CardTitle className="text-sm text-white">Chart Type</CardTitle>
           </CardHeader>
@@ -358,11 +409,11 @@ export function ChartVisualization({ data }: ChartVisualizationProps) {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm">
+          <Card className="bg-slate-800/30 border-slate-700 backdrop-blur-sm" data-chart-type={`2d-${chartType}`}>
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <BarChart3 className="h-5 w-5 mr-2 text-blue-400" />
-                Interactive Chart
+                Interactive Chart - {chartType.toUpperCase()}
               </CardTitle>
             </CardHeader>
             <CardContent>

@@ -20,6 +20,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     checkAuth()
+    
+    // Check token expiry every minute
+    const interval = setInterval(() => {
+      if (!api.isAuthenticated()) {
+        alert('Session expired! Please login again.')
+        router.push('/auth/signin')
+      }
+    }, 60000) // Check every minute
+
+    return () => clearInterval(interval)
   }, [router])
 
   if (isLoading) {

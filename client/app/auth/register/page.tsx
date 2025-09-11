@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { BarChart3, Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
+import { BarChart3, Mail, Lock, User, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { api } from '@/lib/api'
+import { useToast } from '@/hooks/use-toast'
 
 export default function RegisterPage() {
   const [name, setName] = useState('')
@@ -19,6 +20,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,11 +32,26 @@ export default function RegisterPage() {
 
       if (result.error) {
         setError(result.error)
+        toast({
+          variant: "destructive",
+          title: "Registration Failed",
+          description: result.error,
+        })
       } else {
-        router.push('/dashboard')
+        toast({
+          title: "Registration Successful!",
+          description: `Welcome to ExcelAnalytics, ${result.user.name}!`,
+          action: <CheckCircle className="h-4 w-4" />,
+        })
+        setTimeout(() => router.push('/dashboard'), 1000)
       }
     } catch (error) {
       setError('Something went wrong')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+      })
     } finally {
       setIsLoading(false)
     }

@@ -10,6 +10,13 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Check if token is expired (24 hours)
+    const currentTime = Math.floor(Date.now() / 1000);
+    if (decoded.exp < currentTime) {
+      return res.status(401).json({ error: 'Token expired. Please login again.' });
+    }
+    
     const user = await User.findById(decoded.userId);
     
     if (!user) {
@@ -19,6 +26,9 @@ const auth = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired. Please login again.' });
+    }
     res.status(401).json({ error: 'Invalid token.' });
   }
 };
