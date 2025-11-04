@@ -107,3 +107,4 @@ The application runs on two separate servers:
 - **Backend**: http://localhost:5000
 
 API communication happens through the `/api` endpoints on the backend server.
+What agreat project
